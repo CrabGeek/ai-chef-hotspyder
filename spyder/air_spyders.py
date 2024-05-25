@@ -14,13 +14,12 @@ class AirSpyder:
     @property
     def start_url(self):
         return self.__start_url
-    
+
     @property
     def status(self):
         return self.__status
 
     def request(self):
-        
         with requests.session().get(url=self.__start_url) as resp:
             soup = BeautifulSoup(resp.text, "lxml")
             if not callable(self.__callback) or self.__callback is None:
@@ -29,7 +28,7 @@ class AirSpyder:
                 self.__callback(soup)
 
     def parser(self, soup: BeautifulSoup):
-        print(soup.select(".idx_cm_list li"))
+        self.__status = SpyderStatus.STOP
 
     def run(self):
         try:
@@ -44,7 +43,8 @@ class WangYiAirSpyder(AirSpyder):
         super().__init__(start_url, cb)
 
     def parser(self, soup: BeautifulSoup):
-        print(soup.select(".idx_cm_list li"))
+        for li in soup.select(".mod_jrtj .idx_cm_list li"):
+            print(li.a)
 
 
 if __name__ == "__main__":
