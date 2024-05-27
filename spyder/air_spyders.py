@@ -43,9 +43,28 @@ class WangYiAirSpyder(AirSpyder):
         super().__init__(start_url, cb)
 
     def parser(self, soup: BeautifulSoup):
-        for li in soup.select(".mod_jrtj .idx_cm_list li"):
-            print(li.a)
+        for li in soup.select(".mod_jrtj .idx_cm_list li")[:1]:
+            title = li.a.attrs['title']
+            href = li.a.attrs['href']
+            content = ""
+            print({'title': title, 'href': href})
+            self.handle_content(soup, content)
+
+        self.su__status = SpyderStatus.STOP
+        
+
+
+    def handle_content(self, href: str, content: str):
+        with requests.session().get(href) as resp:
+            soup = BeautifulSoup(resp.text, 'lxml')
+            main_content = soup.find('.post_main')
+            # content_title = main_content.select('h1').text
+            print(main_content)
+        
+
+
 
 
 if __name__ == "__main__":
     WangYiAirSpyder("https://news.163.com/domestic/", cb=None).run()
+    
