@@ -16,7 +16,7 @@ with requests.session().get('https://api.vvhan.com/api/hotlist/toutiao') as resp
     driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
 
-    # driver.implicitly_wait(15)
+    driver.implicitly_wait(15)
 
     # title = driver.title
 
