@@ -1,0 +1,2 @@
+THREAD_POOL_SIZE = 5
+THREAD_NAME_PREFIX = "hotspyder"

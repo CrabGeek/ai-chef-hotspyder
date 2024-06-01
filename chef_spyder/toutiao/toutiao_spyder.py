@@ -30,7 +30,7 @@ class TouTiaoSpider(scrapy.Spider):
         return request_items
 
     @property
-    def get_task_id(self):
+    def task_id(self):
         return self.__task_id
 
     def start_requests(self) -> Iterable[scrapy.Request]:
@@ -94,5 +94,5 @@ class TouTiaoSpider(scrapy.Spider):
         #         f.write(article_content.text)
 
     def closed(self, resaon):
-        print("+++++++++++++++++++++ end ++++++++++++++++++++++", resaon)
+        pass
         # TODO: trigger NATS send scrapy status
