@@ -1,48 +1,98 @@
 from typing import Any, Iterable
 import scrapy
-from scrapy.crawler import CrawlerProcess
 from scrapy.http import Response
 from bs4 import BeautifulSoup
-from scrapy.settings import Settings
-import settings as toutiao_settings
+import scrapy.signals
 import requests
+from ..common.items import CommonItem, Payload
+import uuid
+
 
 class TouTiaoSpider(scrapy.Spider):
     name = "TouTiaoSpider"
     hot_list_api = "https://api.vvhan.com/api/hotlist/toutiao"
 
-    def __init__(self, name: str | None = None, **kwargs: Any):
+    def __init__(self, task_id: str, name: str | None = None, **kwargs: Any):
         super().__init__(name, **kwargs)
-
+        self.__task_id = task_id
         self.__hot_list = self.__init_urls()
 
     def __init_urls(self):
-        request_items = [] 
+        request_items = []
         with requests.session().get(self.hot_list_api) as resp:
-            data = resp.json()['data']
-            print(data)
+            data = resp.json()["data"]
             if data is None or len(data) == 0:
-                raise Exception('toutiao hot list response is empty')
-            
+                raise Exception("toutiao hot list response is empty")
+
             for item in data:
-                request_items.append({'title':item['title'], 'url': item['url']})
+                request_items.append({"title": item["title"], "url": item["url"]})
 
         return request_items
-    
+
+    @property
+    def get_task_id(self):
+        return self.__task_id
+
     def start_requests(self) -> Iterable[scrapy.Request]:
-        for item in self.__hot_list[:1]:
-            yield scrapy.Request(url=item['url'], callback=self.parse)
-    
-    def parse(self, response: Response, **kwargs: Any):
-        soup = BeautifulSoup(response.text, 'lxml')
-        
+        self.logger.info(f"starting with task id: [{self.__task_id}]")
+        for item in self.__hot_list:
+            yield scrapy.Request(
+                url=item["url"],
+                callback=self.parse_hot_portal,
+                cb_kwargs={"title": item["title"]},
+                meta={"middleware": "TouTiaoHotListPageDownloaderMiddleware"},
+            )
 
+    def parse_hot_portal(self, response: Response, title: str):
+        soup = BeautifulSoup(response.text, "lxml")
+        target_divs = soup.select(".feed-card-article-l")
 
+        if target_divs is None or len(target_divs) == 0:
+            self.logger.warning(
+                f"title: [{title}], url: [{response.url}] is not article."
+            )
+            return
 
+        target_div = target_divs[0]
+        link = target_div.a.attrs["href"]
 
-if __name__ == '__main__':
-    settings = Settings()
-    settings.setmodule(toutiao_settings)
-    process = CrawlerProcess(settings=settings)
-    process.crawl(TouTiaoSpider)
-    process.start()
+        if link is not None and "article" in link:
+            self.logger.info(
+                f"parser link from portal page with title: [{title}], link: [{link}]"
+            )
+            yield scrapy.Request(
+                url=link,
+                callback=self.extract_article,
+                cb_kwargs={"title": title},
+                meta={"middleware": "TouTiaoArticleDownloaderMiddleware"},
+            )
+
+    def extract_article(self, response: Response, title: str):
+        soup = BeautifulSoup(response.text, "lxml")
+        article_content = soup.select(".article-content")[0]
+
+        if article_content is None:
+            self.logger.warning(
+                f"title: [{title}], url: [{response.url}], article is empty."
+            )
+            return
+
+        item = CommonItem()
+        item["task_id"] = self.__task_id
+        item["url"] = response.url
+        item["content_id"] = uuid.uuid4()
+
+        payload = Payload()
+        payload["title"] = title
+        payload["content"] = article_content.text
+
+        item["payload"] = payload
+
+        yield item
+
+        # with open(f"article-{random.randint(1, 30)}.txt", "+a", encoding="utf-8") as f:
+        #         f.write(article_content.text)
+
+    def closed(self, resaon):
+        print("+++++++++++++++++++++ end ++++++++++++++++++++++", resaon)
+        # TODO: trigger NATS send scrapy status

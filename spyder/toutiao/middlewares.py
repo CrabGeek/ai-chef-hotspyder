@@ -11,7 +11,7 @@ from itemadapter import is_item, ItemAdapter
 from selenium import webdriver
 import settings as toutiao_settings
 from selenium.webdriver.common.by import By
-
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 class TouTiaoSpiderMiddleware:
@@ -61,7 +61,7 @@ class TouTiaoSpiderMiddleware:
         spider.logger.info("Spider opened: %s" % spider.name)
 
 
-class TouTiaoDownloaderMiddleware:
+class TouTiaoHotListPageDownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
     # passed objects.
@@ -71,7 +71,6 @@ class TouTiaoDownloaderMiddleware:
 
         options = self.__init_selenium_options()
         self.__brower = webdriver.Chrome(options=options)
-
 
     def __init_selenium_options(self):
         options = webdriver.ChromeOptions()
@@ -97,12 +96,24 @@ class TouTiaoDownloaderMiddleware:
         # - or return a Request object
         # - or raise IgnoreRequest: process_exception() methods of
         #   installed downloader middleware will be called
-        print(f"+++++++++++request {request.url}")
-        self.__brower.get(request.url)
-        self.__brower.implicitly_wait(15)
-        self.__brower.find_element(By.CLASS_NAME, 'feed-card-article-l')
+        if "article" in request.url:
+            return None
 
-        return HtmlResponse(url=self.__brower.current_url, body=self.__brower.page_source, encoding='utf8', request=request)
+        if "TouTiaoHotListPageDownloaderMiddleware" != request.meta.get("middleware"):
+            return None
+
+        self.__brower.get(request.url)
+        # self.__brower.implicitly_wait(15)
+        WebDriverWait(self.__brower, timeout=15).until(
+            lambda b: b.find_element(By.CLASS_NAME, "block-content").is_displayed()
+        )
+
+        return HtmlResponse(
+            url=self.__brower.current_url,
+            body=self.__brower.page_source,
+            encoding="utf8",
+            request=request,
+        )
 
     def process_response(self, request, response, spider):
         # Called with the response returned from the downloader.
@@ -122,6 +133,80 @@ class TouTiaoDownloaderMiddleware:
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
         pass
+
+    def spider_opened(self, spider):
+        spider.logger.info("Spider opened: %s" % spider.name)
+
+
+class TouTiaoArticleDownloaderMiddleware:
+    # Not all methods need to be defined. If a method is not defined,
+    # scrapy acts as if the downloader middleware does not modify the
+    # passed objects.
+
+    def __init__(self, *arg, **args):
+        super().__init__(*arg, **args)
+
+        options = self.__init_selenium_options()
+        self.__brower = webdriver.Chrome(options=options)
+
+    def __init_selenium_options(self):
+        options = webdriver.ChromeOptions()
+        for option in toutiao_settings.SElENIUM_OPTIONS:
+            options.add_argument(option)
+
+        return options
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def process_request(self, request, spider):
+        # Called for each request that goes through the downloader
+        # middleware.
+
+        # Must either:
+        # - return None: continue processing this request
+        # - or return a Response object
+        # - or return a Request object
+        # - or raise IgnoreRequest: process_exception() methods of
+        #   installed downloader middleware will be called
+
+        if "TouTiaoArticleDownloaderMiddleware" != request.meta.get("middleware"):
+            return None
+
+        self.__brower.get(request.url)
+        WebDriverWait(self.__brower, timeout=15).until(
+            lambda b: b.find_element(By.CLASS_NAME, "article-content").is_displayed()
+        )
+
+        return HtmlResponse(
+            url=self.__brower.current_url,
+            body=self.__brower.page_source,
+            encoding="utf8",
+            request=request,
+        )
+
+    def process_response(self, request, response, spider):
+        # Called with the response returned from the downloader.
+
+        # Must either;
+        # - return a Response object
+        # - return a Request object
+        # - or raise IgnoreRequest
+        return response
+
+    def process_exception(self, request, exception, spider):
+        # Called when a download handler or a process_request()
+        # (from other downloader middleware) raises an exception.
+
+        # Must either:
+        # - return None: continue processing this exception
+        # - return a Response object: stops process_exception() chain
+        # - return a Request object: stops process_exception() chain
+        spider.logger.warning(f'exception occurs during process request: [{request.url}] with detail: [{exception}]')
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
