@@ -4,8 +4,9 @@ from scrapy.http import Response
 from bs4 import BeautifulSoup
 import scrapy.signals
 import requests
-from ..common.items import CommonItem, Payload
+from chef_spyder.common.items import CommonItem, Payload
 import uuid
+
 
 
 class TouTiaoSpider(scrapy.Spider):
@@ -80,7 +81,7 @@ class TouTiaoSpider(scrapy.Spider):
         item = CommonItem()
         item["task_id"] = self.__task_id
         item["url"] = response.url
-        item["content_id"] = uuid.uuid4()
+        item["content_id"] = str(uuid.uuid4())
 
         payload = Payload()
         payload["title"] = title

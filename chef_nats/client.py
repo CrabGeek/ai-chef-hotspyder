@@ -1,7 +1,11 @@
 from chef_nats import settings as nats_settings
 import nats
+import asyncio
 
-class NatsClient():
+
+class NatsClient:
+
+    nc = None
 
     def __init__(self):
         self.__address = nats_settings.NATS_SERVER_ADDRESS
@@ -10,11 +14,13 @@ class NatsClient():
     @property
     def address(self):
         return self.__address
-    
-    @property
-    def connect(self):
-        return self.__nc
-    
 
     async def run(self):
-        self.__nc = await nats.connect(self.__address)
+        NatsClient.nc = await nats.connect(servers=[self.__address])
+
+    @staticmethod
+    async def send(subject: str, data: bytes):
+        if NatsClient.nc is None:
+            return
+        await NatsClient.nc.publish(subject=subject, payload=data)
+
