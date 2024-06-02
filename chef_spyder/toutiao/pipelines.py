@@ -1,22 +1,21 @@
 import json
 from itemadapter import ItemAdapter
-from chef_nats.client import NatsClient
 from chef_utility import hotspyder_utility
-import asyncio
-import nest_asyncio
+import chef_mq.client as mq_client
+import pika
+from pika.delivery_mode import DeliveryMode
 
-nest_asyncio.apply()
 
 class TouTiaoPipeline:
 
     def process_item(self, item, spider):
-        print("-----------------------------")
         data = json.dumps(ItemAdapter(item).asdict(), ensure_ascii=False) + "\n"
-        # hotspyder_utility.THREAD_POOL.submit(
-        #     lambda ctx: NatsClient.send(*ctx),
-        #     ("foo", str.encode(data, encoding="utf-8")),
-        # )
-
-        asyncio.run(NatsClient.send("foo", str.encode(data, encoding="utf-8")))
-        print("-----------------------------")
+        hotspyder_utility.THREAD_POOL.submit(
+            lambda ctx: mq_client.send(*ctx),
+            (
+                "hotspyder_to_doorman",
+                data,
+                pika.BasicProperties(delivery_mode=DeliveryMode.Transient),
+            ),
+        )
         return item
