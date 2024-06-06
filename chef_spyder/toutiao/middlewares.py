@@ -12,6 +12,7 @@ from selenium import webdriver
 import settings as toutiao_settings
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.chrome.service import Service
 
 
 class TouTiaoSpiderMiddleware:
@@ -84,6 +85,8 @@ class TouTiaoHotListPageDownloaderMiddleware:
         # This method is used by Scrapy to create your spiders.
         s = cls()
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_closed, signal=signals.spider_closed)
+        # crawler.signals.connect(s.spider_closed, signal=signals.spider_error)
         return s
 
     def process_request(self, request, spider):
@@ -103,8 +106,7 @@ class TouTiaoHotListPageDownloaderMiddleware:
             return None
 
         self.__brower.get(request.url)
-        # self.__brower.implicitly_wait(15)
-        WebDriverWait(self.__brower, timeout=15).until(
+        WebDriverWait(self.__brower, timeout=toutiao_settings.SELENUM_REQUEST_TIMEOUT).until(
             lambda b: b.find_element(By.CLASS_NAME, "block-content").is_displayed()
         )
 
@@ -137,6 +139,11 @@ class TouTiaoHotListPageDownloaderMiddleware:
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
 
+    def spider_closed(self, spider):
+        self.__brower.close()
+        self.__brower.quit()
+        pass
+
 
 class TouTiaoArticleDownloaderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -161,6 +168,8 @@ class TouTiaoArticleDownloaderMiddleware:
         # This method is used by Scrapy to create your spiders.
         s = cls()
         crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(s.spider_closed, signal=signals.spider_closed)
+        # crawler.signals.connect(s.spider_closed, signal=signals.spider_error)
         return s
 
     def process_request(self, request, spider):
@@ -178,7 +187,7 @@ class TouTiaoArticleDownloaderMiddleware:
             return None
 
         self.__brower.get(request.url)
-        WebDriverWait(self.__brower, timeout=15).until(
+        WebDriverWait(self.__brower, timeout=toutiao_settings.SELENUM_REQUEST_TIMEOUT).until(
             lambda b: b.find_element(By.CLASS_NAME, "article-content").is_displayed()
         )
 
@@ -206,7 +215,14 @@ class TouTiaoArticleDownloaderMiddleware:
         # - return None: continue processing this exception
         # - return a Response object: stops process_exception() chain
         # - return a Request object: stops process_exception() chain
-        spider.logger.warning(f'exception occurs during process request: [{request.url}] with detail: [{exception}]')
+        spider.logger.warning(
+            f"exception occurs during process request: [{request.url}] with detail: [{exception}]"
+        )
 
     def spider_opened(self, spider):
         spider.logger.info("Spider opened: %s" % spider.name)
+
+    def spider_closed(self, spider):
+        self.__brower.close()
+        self.__brower.quit()
+        pass

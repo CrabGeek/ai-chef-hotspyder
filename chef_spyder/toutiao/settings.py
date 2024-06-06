@@ -18,3 +18,5 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 
 
 SElENIUM_OPTIONS = ["--headless", "--log-level=3"]
+
+SELENUM_REQUEST_TIMEOUT = 60

@@ -10,10 +10,13 @@ import uvicorn
 from fastapi import FastAPI
 
 import server_settings
+from chef_mq import instant
 
 
 
 if __name__ == "__main__":
+
+    instant.init_connections()
 
     server_settings = Settings()
     server_settings.setmodule(toutiao_settings)
@@ -22,7 +25,6 @@ if __name__ == "__main__":
     process.crawl(TouTiaoSpider, task_id="1234234")
     process.start()
 
-    pass
 
     # uvicorn.run(
     #     "main:app", port=settings.UVICRON_PORT, log_level=settings.UVICRON_LOG_LEVEL

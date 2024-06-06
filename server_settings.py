@@ -1,3 +1,5 @@
 UVICRON_PORT = 8909
 
 UVICRON_LOG_LEVEL = "info"
+
+MQ_ADDRESS = "localhost"

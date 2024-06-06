@@ -1,7 +1,7 @@
 import json
 from itemadapter import ItemAdapter
 from chef_utility import hotspyder_utility
-import chef_mq.client as mq_client
+from chef_mq import instant
 import pika
 from pika.delivery_mode import DeliveryMode
 
@@ -14,7 +14,7 @@ class TouTiaoPipeline:
         print(data)
         print('-------------------------------')
 
-        mq_client.send(channel_name="hotspyder_to_doorman", payload=data, properties=pika.BasicProperties(delivery_mode=DeliveryMode.Transient))
+        instant.send(channel_name="hotspyder_to_doorman", payload=data, properties=pika.BasicProperties(delivery_mode=DeliveryMode.Transient))
         # hotspyder_utility.THREAD_POOL.submit(
         #     lambda ctx: mq_client.send(*ctx),
         #     (
