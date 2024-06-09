@@ -8,15 +8,18 @@ from chef_spyder.common.items import CommonItem, Payload
 import uuid
 
 
-
 class TouTiaoSpider(scrapy.Spider):
     name = "TouTiaoSpider"
     hot_list_api = "https://api.vvhan.com/api/hotlist/toutiao"
 
-    def __init__(self, task_id: str, name: str | None = None, **kwargs: Any):
+    def __init__(
+        self, task_id: str, prompt_words: str, name: str | None = None, **kwargs: Any
+    ):
         super().__init__(name, **kwargs)
         self.__task_id = task_id
+        self.__prompt_words = prompt_words
         self.__hot_list = self.__init_urls()
+        # [self.__init_urls()[28]]
 
     def __init_urls(self):
         request_items = []
@@ -81,6 +84,7 @@ class TouTiaoSpider(scrapy.Spider):
         item = CommonItem()
         item["task_id"] = self.__task_id
         item["url"] = response.url
+        item["prompt_words"] = self.__prompt_words
         item["content_id"] = str(uuid.uuid4())
 
         payload = Payload()

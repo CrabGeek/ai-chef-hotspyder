@@ -10,17 +10,9 @@ class TouTiaoPipeline:
 
     def process_item(self, item, spider):
         data = json.dumps(ItemAdapter(item).asdict(), ensure_ascii=False) + "\n"
-        print('-------------------------------')
-        print(data)
-        print('-------------------------------')
-
-        instant.send(channel_name="hotspyder_to_doorman", payload=data, properties=pika.BasicProperties(delivery_mode=DeliveryMode.Transient))
-        # hotspyder_utility.THREAD_POOL.submit(
-        #     lambda ctx: mq_client.send(*ctx),
-        #     (
-        #         "hotspyder_to_doorman",
-        #         data,
-        #         pika.BasicProperties(delivery_mode=DeliveryMode.Transient),
-        #     ),
-        # )
+        instant.send(
+            channel_name="hotspyder_to_doorman",
+            payload=data,
+            properties=pika.BasicProperties(delivery_mode=DeliveryMode.Transient),
+        )
         return item

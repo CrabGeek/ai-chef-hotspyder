@@ -10,19 +10,16 @@ import uvicorn
 from fastapi import FastAPI
 
 import server_settings
-from chef_mq import instant
 
 
 
 if __name__ == "__main__":
 
-    instant.init_connections()
-
     server_settings = Settings()
     server_settings.setmodule(toutiao_settings)
 
     process = CrawlerProcess(server_settings)
-    process.crawl(TouTiaoSpider, task_id="1234234")
+    process.crawl(TouTiaoSpider, task_id="1234234", prompt_words="生成评论, 300字")
     process.start()
 
 

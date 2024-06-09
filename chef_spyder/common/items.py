@@ -6,6 +6,7 @@ class Payload(Item):
 
 class CommonItem(Item):
     task_id = Field()
+    prompt_words = Field()
     content_id = Field()
     url = Field()
     payload = Field()
